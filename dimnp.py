@@ -6,33 +6,15 @@ import preprocess as prep
 import difftest as df
 
 
-def rundimnp():
-	if len(sys.argv) < 2:
-		print 'Error : Please input parameters!'
-		return 0
-	ipathr = sys.argv[1]   # 要分析的样本数据(bed,bowtie或profile)路径，以*分隔
-	opathr = sys.argv[2]   # 所有输出文件的根目录，包括样本间按染色体比较的差异结果以及每个样本的单独目录
-	chrN = sys.argv[3]   # 'whole' or 'Scchr01' 要进行样本间差异分析的染色体号或全基因组,'whole'只有在isprep= 1(True) 时才有效
-	cutoff_ = float(sys.argv[4])  # cutoff值 P-value
-	isprep = sys.argv[5]   # 0 False  1 True 是否首先需要计算核小体profile
-
-	win_size_ = 36
-	step_ = 1
-
+def rundimnp(ipathr, opathr, chrN, cutoff, isprep, winsize, step, format, pairend, keep):
 	if not(os.path.exists(opathr)): os.mkdir(opathr)
 
-	if isprep == '1':
-		format = sys.argv[6]   # format : bed,bowtie
-		pair_end = sys.argv[7]   # 0 False  1 True
-		keep = sys.argv[8]   # 0 False  1 True 是否保存中间文件，若为F，则只保存每条染色体最终profile和核小体位点文件，否则保存生成profile时预处理的各步文件
-		if len(sys.argv) != 9:
-			print 'Error : Wrong number of parameters!'
-			return 0
+	if isprep:
 		sigma = 35
 		times_of_sigma = 2
 
-		print 'ipath:',ipathr,'\n','opath:',opathr,'\n','format:',format,'\t','pair_end:',pair_end,'\t','keep:',keep,'\n',\
-		'chrN:',chrN,'\t','cutoff:',cutoff_,'\t','win_size:',win_size_,'\t','step:',step_,'\n',\
+		print 'ipath:',ipathr,'\n','opath:',opathr,'\n','format:',format,'\t','pairend:',pairend,'\t','keep:',keep,'\n',\
+		'chrN:',chrN,'\t','cutoff:',cutoff_,'\t','winsize:',winsize,'\t','step:',step,'\n',\
 		'sigma:',sigma,'\t','times_of_sigma:',times_of_sigma
 
 		filenames,ipaths,opaths = get_fn_path(ipathr,opathr)  # 样本单独的文件名，输入路径和输出路径
@@ -46,7 +28,7 @@ def rundimnp():
 			ipath = ipaths[i]
 			opath = opaths[i]
 			print 'ipath:',ipath,'\t','opath:',opath
-			nucl = prep.Preprocess(ipath,opath,format,pair_end,keep,sigma,times_of_sigma)
+			nucl = prep.Preprocess(ipath,opath,format,pairend,keep,sigma,times_of_sigma)
 			nucl.runPreprocess()
 
 		# 第二步动态识别：
@@ -55,7 +37,7 @@ def rundimnp():
 			print 'Identifying dynamic positions in',chrn,':'
 			fns = [os.path.join(opath,'rm_sm_normalization',chrn) for opath in opaths]
 			print 'fns:',fns
-			df.caldiff(fn = fns,chrNum = chrn,opath = opathr,cutoff = cutoff_,win_size = win_size_,step = step_)
+			df.caldiff(fn = fns,chrNum = chrn,opath = opathr,cutoff = cutoff_,winsize = winsize,step = step)
 
 	elif isprep == '0':
 		if len(sys.argv) != 6:
@@ -63,13 +45,13 @@ def rundimnp():
 			return 0
 
 		print 'ipath:',ipathr,'\n','opath:',opathr,'\n',\
-		'chrN:',chrN,'\t','cutoff:',cutoff_,'\t','win_size:',win_size_,'\t','step:',step_,'\n',\
+		'chrN:',chrN,'\t','cutoff:',cutoff_,'\t','winsize:',winsize,'\t','step:',step,'\n',\
 
 		# 第二步动态识别：
 		print 'Identifying dynamic positions in',chrN,':'
 		fns = ipathr.split('*')
 		print 'fns:',fns
-		df.caldiff(fn = fns,chrNum = chrN,opath = opathr,cutoff = cutoff_,win_size = win_size_,step = step_)
+		df.caldiff(fn = fns,chrNum = chrN,opath = opathr,cutoff = cutoff_,winsize = winsize,step = step)
 
 
 
@@ -93,9 +75,20 @@ def get_chrNs(chrN,opaths):
 	return chrNs
 
 
+if __name__ == '__main__':
+	import argparse
+	parser = argparse.ArgumentParser(description='Process.')
+	parser.add_argument('-i', '--ipathr', nargs='+', help='要分析的样本数据(bed,bowtie或profile)路径，以空格分隔')
+	parser.add_argument('-o', '--opathr', help='所有输出文件的根目录，包括样本间按染色体比较的差异结果以及每个样本的单独目录')
+	parser.add_argument('-r', '--chrn', help="'whole' or 'Scchr01' 要进行样本间差异分析的染色体号或全基因组,'whole'只有在 isprep=True 时才有效")
+	parser.add_argument('-c', '--cutoff', type=float, help='cutoff值 P-value')
+	parser.add_argument('-p', '--isprep', action='store_true', help='是否首先需要计算核小体profile')
+	parser.add_argument('-s', '--winsize', type=int, default=36, help='窗口大小')
+	parser.add_argument('-t', '--step', type=int, default=1, help='步长')
+	parser.add_argument('-f', '--format', choices=('bed', 'bowtie'), help='格式，bed or format')
+	parser.add_argument('-e', '--pairend', action='store_true', help='是否有pair end')
+	parser.add_argument('-k', '--keep', action='store_true', help='是否保存中间文件，若为False，则只保存每条染色体最终profile和核小体位点文件，否则保存生成profile时预处理的各步文件')
 
-
-
-
-rundimnp()
-
+	args = parser.parse_args(sys.argv[1:])
+	kwargs = vars(args)
+	rundimnp(**kwargs)

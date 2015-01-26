@@ -7,11 +7,11 @@ import math
 
 
 class Preprocess:
-	def __init__(self,ipath,opath,format,pair_end,keep,sigma,times_of_sigma):
+	def __init__(self,ipath,opath,format,pairend,keep,sigma,times_of_sigma):
 		self.ipath = ipath
 		self.opath = opath
 		self.format = format
-		self.paired = pair_end
+		self.paired = pairend
 		self.keep = keep
 		self.sigma = sigma
 		self.times_of_sigma = times_of_sigma
@@ -46,7 +46,7 @@ class Preprocess:
 			for v in outfiles.values():
 				v.close()
 			for parent,dirnames,filenames in os.walk(opath1):  # get center
-				for filename in filenames: 
+				for filename in filenames:
 					idx = 1
 					if filename not in read_center:
 						read_center[filename] = []
@@ -69,7 +69,7 @@ class Preprocess:
 						idxs = xrange(i - 37, i + 37)
 						for idx in idxs:
 							self.nucl_profile[key][idx] += 1
-			if self.keep == 1:
+			if self.keep:
 				opath2 = os.path.join(self.opath,'profile')
 				if not(os.path.exists(opath2)): os.mkdir(opath2)
 				print 'Writing into files...','\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
@@ -79,7 +79,7 @@ class Preprocess:
 					fr.close
 			# print 'self.chlength',self.chlength
 
-		elif self.format == 'bowtie' and self.paired == '0': # for single data
+		elif self.format == 'bowtie' and not self.paired: # for single data
 			opath1 = os.path.join(self.opath,'split')
 			if not(os.path.exists(opath1)): os.mkdir(opath1)
 			outfiles = {}
@@ -99,7 +99,7 @@ class Preprocess:
 			for v in outfiles.values():
 				v.close()
 			for parent,dirnames,filenames in os.walk(opath1):  # get center
-				for filename in filenames: 
+				for filename in filenames:
 					idx = 1
 					if filename not in read_center:
 						read_center[filename] = []
@@ -122,7 +122,7 @@ class Preprocess:
 						idxs = xrange(i - 37, i + 37)
 						for idx in idxs:
 							self.nucl_profile[key][idx] += 1
-			if self.keep == 1:
+			if self.keep:
 				opath2 = os.path.join(self.opath,'profile')
 				if not(os.path.exists(opath2)): os.mkdir(opath2)
 				print 'Writing into files...','\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
@@ -132,7 +132,7 @@ class Preprocess:
 					fr.close
 			# print 'self.chlength',self.chlength
 
-		elif self.format == 'bowtie' and self.paired == '1': # for self.paired data
+		elif self.format == 'bowtie' and self.paired: # for self.paired data
 			rawfile = open(self.ipath,'r')
 			idx = 1
 			while True:
@@ -147,7 +147,7 @@ class Preprocess:
 						print 'pair error --- single end reads:\n',line1,'\n'
 						line1 = rawfile.readline().split()
 						# if ((idx % 100000) == 0): print "processed %i reads" % idx
-						# idx += 1	
+						# idx += 1
 						continue
 					else:
 						if ch1 not in read_center:
@@ -166,7 +166,7 @@ class Preprocess:
 						idxs = xrange(i - 37, i + 37)
 						for idx in idxs:
 							self.nucl_profile[key][idx] += 1
-			if self.keep == 1:
+			if self.keep:
 				opath2 = os.path.join(self.opath,'profile')
 				if not(os.path.exists(opath2)): os.mkdir(opath2)
 				print 'Writing into files...','\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
@@ -181,11 +181,11 @@ class Preprocess:
 		print 'Removing Clonal Reads...','\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
 		for key in self.nucl_profile:
 			av = sum(self.nucl_profile[key])/float(self.chlength[key])
-			# print key,'av:',av 
+			# print key,'av:',av
 			cut = av * 10
 			for i in range(self.chlength[key]):
 				if self.nucl_profile[key][i] > cut: self.nucl_profile[key][i] = cut
-		if self.keep == 1:
+		if self.keep:
 			opath3 = os.path.join(self.opath,'rmclonal')
 			if not(os.path.exists(opath3)): os.mkdir(opath3)
 			print 'Writing into files...','\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
@@ -217,7 +217,7 @@ class Preprocess:
 				Gaussian.append(math.exp(-x*x/(2.0*self.sigma*self.sigma))/math.sqrt(2*(math.pi)*self.sigma*self.sigma))
 			for j in range(self.chlength[key]):
 				self.nucl_profile[key][j] = convolution(j,Gaussian,key)
-		if self.keep == 1:
+		if self.keep:
 			opath4 = os.path.join(self.opath,'rm_smooth')
 			if not(os.path.exists(opath4)): os.mkdir(opath4)
 			print 'Writing into files...','\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
