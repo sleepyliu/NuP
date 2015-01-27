@@ -16,7 +16,7 @@ class nuclPreprocess:
         self.nucl_profile = {}
 
     def make_profile(self):  # step1
-        print 'Calculating Nuclesome Profile from %s' % self.ipath,'\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
+        print 'Calculating Nuclesome Profile from %s ...' % self.ipath,'\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
         try:
             rawfile = open(self.ipath, 'r')
         except IOError:
@@ -40,13 +40,13 @@ class nuclPreprocess:
                 elif dire == '-':read_center[ch].append(int(start) - 75)
 
         elif self.fmt == 'bowtie' and self.paired == 1:
-            lname, ldire, lstart = None
+            lname, ldire, lstart = '','',''
             for line in rawfile:
                 splited = line.split()
                 name, dire, ch, start, seqlen = splited[0],splited[2],splited[3],splited[4],len(splited[5])
                 if name == lname and dire != ldire:
                     read_center.setdefault(ch, [])
-                    read_center[ch1].append((int(start) + int(lstart) + seqlen)//2)
+                    read_center[ch].append((int(start) + int(lstart) + seqlen)//2)
                 lname, ldire, lstart = name, dire, start
 
         # calculate length and initial self.nucl_profile
@@ -58,7 +58,7 @@ class nuclPreprocess:
                     idxs = xrange(i - 37, i + 37)
                     for idx in idxs:
                         self.nucl_profile[key][idx] += 1
-        print 'self.chlength',self.chlength
+        # print 'self.chlength',self.chlength
 
 
     def rmclonal(self):  # step2:rmclonal(>10*av)
@@ -71,7 +71,7 @@ class nuclPreprocess:
 
 
     def smooth(self):    # step3:Gaussian smooth
-        print 'Data Smooth by Gaussian convolution......','\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
+        print 'Data Smooth by Gaussian convolution...','\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
         sigma = 35
         times_of_sigma = 2
         def convolution(x,Gaussian,key):
@@ -100,7 +100,7 @@ class nuclPreprocess:
         print 'Foldchange Normalization...','\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
         for key in self.nucl_profile:
             av_ = sum(self.nucl_profile[key])/float(self.chlength[key])
-            print key,'av_:',av_
+            # print key,'av_:',av_
             for i in range(self.chlength[key]):
                 self.nucl_profile[key][i] = self.nucl_profile[key][i]/av_
 
@@ -113,13 +113,15 @@ class nuclPreprocess:
 
 
     def writefiles(self):
-        if not(os.path.exists(self.opath)): os.mkdir(self.opath)
         print 'Writing into files...','\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
         try:
+            fr = open(self.opath,'w')
             for key in self.nucl_profile:
-                fr = open(os.path.join(self.opath,key),'w')
-                fr.writelines(str(self.nucl_profile[key]).strip('[]'))
-                fr.close
+                fr.write('chrom='+key+'\n')
+                for i in range(len(self.nucl_profile[key])):
+                    fr.write(str(self.nucl_profile[key][i])+'\n')
+            fr.close
+            print 'completed'
         except IOError:
             print 'Can not write into %s' % self.opath
             return 0
@@ -132,4 +134,5 @@ class nuclPreprocess:
         self.Fnor()
         self.set_normalization_level()
         self.writefiles()
+        return self.nucl_profile
         
