@@ -15,7 +15,7 @@ class nuclPreprocess:
         self.chlength = {}
         self.nucl_profile = {}
 
-    def make_profile(self):
+    def make_profile(self):  # step1
         print 'Calculating Nuclesome Profile from %s' % self.ipath,'\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
         try:
             rawfile = open(self.ipath, 'r')
@@ -61,7 +61,7 @@ class nuclPreprocess:
         print 'self.chlength',self.chlength
 
 
-    def rmclonal(self):  # step2:rmclonal   将冗余置为10*av（覆盖度）
+    def rmclonal(self):  # step2:rmclonal(>10*av)
         print 'Removing Clonal Reads...','\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
         for key in self.nucl_profile:
             av = sum(self.nucl_profile[key])/float(self.chlength[key])
@@ -70,7 +70,7 @@ class nuclPreprocess:
                 if self.nucl_profile[key][i] > cut: self.nucl_profile[key][i] = cut
 
 
-    def smooth(self):    # step3:smooth   对核小体信号做高斯卷积平滑
+    def smooth(self):    # step3:Gaussian smooth
         print 'Data Smooth by Gaussian convolution......','\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
         sigma = 35
         times_of_sigma = 2
@@ -96,7 +96,7 @@ class nuclPreprocess:
                 self.nucl_profile[key][j] = convolution(j,Gaussian,key)
 
 
-    def Fnor(self):   # step4:Fnor(Foldchange)   将核小体信号转为Foldchange（归一化）
+    def Fnor(self):   # step4:Fnor(Foldchange)
         print 'Foldchange Normalization...','\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
         for key in self.nucl_profile:
             av_ = sum(self.nucl_profile[key])/float(self.chlength[key])
@@ -120,7 +120,7 @@ class nuclPreprocess:
                 fr = open(os.path.join(self.opath,key),'w')
                 fr.writelines(str(self.nucl_profile[key]).strip('[]'))
                 fr.close
-        except:
+        except IOError:
             print 'Can not write into %s' % self.opath
             return 0
 
@@ -132,3 +132,4 @@ class nuclPreprocess:
         self.Fnor()
         self.set_normalization_level()
         self.writefiles()
+        
