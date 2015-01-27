@@ -5,9 +5,9 @@ import time
 from math import log10
 from rpy2.robjects import r,FloatVector
 
-FILE_NAMES = ['/vagrant/OUTPUT/013656/Scchr04',
+FILE_NAMES = ('/vagrant/OUTPUT/013656/Scchr04',
 '/vagrant/OUTPUT/013657/Scchr04',
-'/vagrant/OUTPUT/013658/Scchr04']
+'/vagrant/OUTPUT/013658/Scchr04')
 
 OPATH = '/vagrant/OUTPUT/Diff/Scchr04'
 
