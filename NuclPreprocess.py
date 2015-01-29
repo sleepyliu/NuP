@@ -49,6 +49,8 @@ class nuclPreprocess:
                     read_center[ch].append((int(start) + int(lstart) + seqlen)//2)
                 lname, ldire, lstart = name, dire, start
 
+        rawfile.close()
+
         # calculate length and initial self.nucl_profile
         for key in read_center:
             self.chlength[key] = max(read_center[key]) + 100
@@ -120,8 +122,8 @@ class nuclPreprocess:
                 fr.write('chrom='+key+'\n')
                 for i in range(len(self.nucl_profile[key])):
                     fr.write(str(self.nucl_profile[key][i])+'\n')
-            fr.close
-            print 'completed'
+            fr.close()
+            print 'Completed.','\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
         except IOError:
             print 'Can not write into %s' % self.opath
             return 0
@@ -134,5 +136,5 @@ class nuclPreprocess:
         self.Fnor()
         self.set_normalization_level()
         self.writefiles()
-        return self.nucl_profile
+        # return self.nucl_profile
         
