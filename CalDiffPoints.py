@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 
-import os
-import time
+import os,time
+from array import array
 from math import log10
 from rpy2.robjects import r,FloatVector
+
 
 FILE_NAMES = ['/vagrant/OUTPUT/013656.wig',
 '/vagrant/OUTPUT/013657.wig',
 '/vagrant/OUTPUT/013658.wig']
 
-# OPATH = '/vagrant/OUTPUT/Diff'
 OPATH = '/vagrant/OUTPUT/diffresult.wig'
 
 
@@ -18,11 +18,9 @@ class calDiffPoints:
         self.file_names = file_names
         self.opath = opath
         self.cutoff = cutoff
-        # self.range = diffrange
         self.method = method
 
-        self.signal = {}   # key = sample_name  value = {chr:profile}
-        self.chrlist = []
+        self.signal = {}   # key = sample_name  value = {chr:[array]}
         self.length = {}
 
         self.P_values = {}
@@ -30,29 +28,35 @@ class calDiffPoints:
         # self.diffZone = {}
         self.diffcenter = {}
 
+
     def loaddata(self):
         for filename in self.file_names:
             try:
                 fr = open(filename)
-                self.signal[filename] = {}
+                self.signal.setdefault(filename,{})
                 for line in fr:
                     if 'chrom' in line:
                         ch = line[6:].strip('\n')
-                        self.signal[filename].setdefault(ch,[])
-                        self.chrlist.append(ch)
+                        self.signal[filename].setdefault(ch,array('f',[]))
                     else:
                         self.signal[filename][ch].append(float(line.strip('\n')))
                 fr.close()
-                print 'load %s completed' %filename
+                print 'load %s completed' %filename,'\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
             except IOError:
-                print 'Cannot open file %s' %filename
+                print 'Cannot open file %s' %filename,'\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
                 return 0
+
+    def getChrlist(self):
+        filen = self.signal.keys()[0]
+        return self.signal[filen].keys()
 
     def caldiffPvalues(self):
         print 'calcularing Statistic P_values(-log10)...','\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
-        for ch in self.chrlist:
-            self.P_values.setdefault(ch,[])
-            self.diffPoints.setdefault(ch,[])
+        r['options'](warn = -1)
+        i = 0
+        for ch in self.getChrlist():
+            self.P_values.setdefault(ch,array('f',[]))
+            self.diffPoints.setdefault(ch,array('I',[]))
             self.length[ch] = min([len(self.signal[filename][ch]) for filename in self.signal])
             mean = [float(sum(self.signal[filename][ch])/len(self.signal[filename][ch])) for filename in self.signal]
             for j in range(self.length[ch]):
@@ -66,7 +70,9 @@ class calDiffPoints:
                     if p_value < self.cutoff: self.diffPoints[ch].append(j)
                 else:
                     self.P_values[ch].append(0)
-            print "%s caldiff finished" %ch 
+                if (j%10000 == 0):print "processed %i points for %s" % (j,ch),'\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
+            i += 1
+            print "%s caldiff finished (Finished %i Chroms)" %(ch,i),'\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
 
     # def getDynamicZone(self):
     #     print 'get Dynamic Zone...','\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
@@ -87,8 +93,8 @@ class calDiffPoints:
 
     def getDiffCenter(self):
         print 'get diff center...','\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
-        for ch in self.chrlist:
-            self.diffcenter.setdefault(ch,[])
+        for ch in self.getChrlist():
+            self.diffcenter.setdefault(ch,array('I',[]))
             start = self.diffPoints[ch][0]
             for i in range(1,len(self.diffPoints[ch])):
                 end = self.diffPoints[ch][i-1]
@@ -127,7 +133,7 @@ class calDiffPoints:
             fr.close()
             print 'Completed.','\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
         except IOError:
-            print 'Can not write into %s' % self.opath
+            print 'Can not write into %s' % self.opath,'\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
             return 0
 
 

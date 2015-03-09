@@ -20,7 +20,7 @@ class nuclPreprocess:
         try:
             rawfile = open(self.ipath, 'r')
         except IOError:
-            print 'Can not open file %s' % self.ipath
+            print 'Can not open file %s' % self.ipath,'\t',time.strftime('%Y-%m-%d %A %H:%M:%S', time.localtime())
             return 0
 
         read_center = {}  # key = chr,value = center of each read
